@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WPS Menu Test</title>
+
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/jquery/theme/default/jquery-ui.min.css" type="text/css"/>
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Styles.css" type="text/css"/>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Ui.js"></script>
+
+    <script type="text/javascript">
+      /**
+       * Initializes the page
+       */
+      function init() {
+        var options = {
+          url: 'http://sosmet.nerc-bas.ac.uk:8080/wpsmet/WebProcessingService'
+        };
+        var menu = new WPS.Menu(options);
+        menu.display();
+
+        var infoMetadata = new WPS.Info(options);
+        infoMetadata.wps = menu.wps;
+        infoMetadata.config.info.id = "wpsInfoMetadataBox";
+        infoMetadata.addClass("wps-info-metadata-box");
+        infoMetadata.setContent("Welcome to WPS Menu Test");
+        infoMetadata.setTitle("Metadata");
+
+        infoMetadata.wps.registerUserCallback({
+          event: "wpsProcessDescriptionAvailable",
+          callback: function() {
+            var rec = this.getProcessDescriptionRecord(0);
+            var c = "";
+
+            if(rec) {
+              c += 'Title: ' + rec.title + '<br/>'
+              + 'Abstract: ' + rec.abstract + '<br/>'
+              + 'Version: ' + rec.processVersion + '<br/>';
+            }
+            infoMetadata.updateContent(c);
+
+            // Now run this algorithm
+            executeProcess(infoMetadata.wps, rec);
+          }
+        });
+        infoMetadata.display();
+
+        var infoData = new WPS.Info(options);
+        infoData.wps = menu.wps;
+        infoData.config.info.id = "wpsInfoDataBox";
+        infoData.addClass("local-info-data-box");
+        infoData.setContent("Welcome to WPS Menu Test");
+        infoData.setTitle("Data");
+
+        infoData.wps.registerUserCallback({
+          event: "wpsExecResultAvailable",
+          callback: function() {
+            if(this.WPSExecutionResult.text) {
+              var c = "<pre>" + this.WPSExecutionResult.text + "</pre>";
+              infoData.updateContent(c);
+            }
+          }
+        });
+        infoData.display();
+      }
+
+      /**
+       * Run the selected algorithm with hard-coded test data
+       */
+      function executeProcess(wps, proc) {
+        var params;
+
+        if((WPS.Utils.idToName(proc.identifier) == "metMonthlyStats") || (WPS.Utils.idToName(proc.identifier) == "metMonthlyMeans")) {
+          params = {
+            dataInputs: [
+              {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
+              {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
+              {identifier: "year", data: {literalData: {value: 2013}}},
+              {identifier: "includeHeader", data: {literalData: {value: 1}}}
+            ]
+          };
+        } else if(WPS.Utils.idToName(proc.identifier) == "metData") {
+          params = {
+            dataInputs: [
+              {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
+              {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
+              {identifier: "startDatetime", data: {literalData: {value: "2013-01-01T00:00:00Z"}}},
+              {identifier: "endDatetime", data: {literalData: {value: "2013-01-01T23:59:59Z"}}},
+              {identifier: "includeHeader", data: {literalData: {value: 1}}}
+            ]
+          };
+        } else {
+          alert("Sorry, no specific parameters have been setup for this particular algorithm yet.  Please try another algorithm from the list.");
+        }
+        if(params) {
+          wps.executeProcessForProcessId(proc.identifier, params);
+        }
+      }
+    </script>
+    <style>
+      .wps-menu {
+        position: relative;
+        top: 0px;
+      }
+      .wps-menu-controls-container {
+        height: 180px;
+        position: absolute;
+        left: 8px;
+        top: 164px;
+      }
+      .local-info-data-box {
+        position: absolute;
+        top: 64px;
+        left: 250px;
+        padding: 5px; 
+        padding-top: 20px;
+        width: 730px;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <h3 id="title">WPS Menu Test</h3>
+    <p>This tests the WPS.Menu component (and the WPS.Info component) from the WPS.Ui.js module.  Selecting an algorithm (aka offering) from the Algorithms list will describe that algorithm in the Metadata WPS.Info box, on the right hand side of the page.  Furthermore, the selected algorithm will be executed, with hard-coded parameters, and the raw output displayed in the Data WPS.Info box, in the centre of the page.</p>
+    <!-- <div id="wpsMenu" class="wps-menu"></div> -->
+    <div id="wpsInfoDataBox" class="wps-info-box local-info-data-box"></div>
+    <div id="wpsInfoRightContainer" class="wps-info-right-container">
+      <div id="wpsInfoMetadataBox" class="wps-info-box wps-info-metadata-box"></div>
+    </div>
+  </body>
+</html>
+

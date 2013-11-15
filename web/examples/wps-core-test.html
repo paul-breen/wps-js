@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WPS Core Test</title>
+    <style type="text/css">
+    table, th, td {
+      padding-right: 10px;
+    }
+    </style>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.js"></script>
+
+    <script type="text/javascript">
+      /**
+       * Initializes the page
+       */
+      function init() {
+        alert("Open the console log (Ctrl+Shift+k in Firefox) to see outputs from this test harness");
+
+        var wps = new WPS({url: 'http://sosmet.nerc-bas.ac.uk:8080/wpsmet/WebProcessingService'});
+
+        console.log("***** post instantiation tests *****");
+
+        console.log("wps = ");
+        console.log(wps);
+        console.log(wps.config);
+ 
+        wps.getCapabilities(runCapsTests);
+      }
+
+      /**
+       * Callback to run tests on the WPS object
+       */
+      function runCapsTests(e) {
+        console.log("***** post getCapabilities tests *****");
+
+        console.log("this (wps) = ");
+        console.log(this);
+
+        console.log(this.WPSCapabilities.processOfferings);
+
+        var offeringId = "org.n52.wps.server.r.metMonthlyMeans";
+        var off = this.getOffering(offeringId);
+
+        if(off) {
+          console.log("off = ");
+          console.log(off);
+
+          off.registerUserCallback({
+            event: "wpsProcessDescriptionAvailable",
+            callback: runDescribeProcessTests
+          });
+          off.describeProcess();
+
+          /* Or alternatively, using WPS object rather than WPS.Offering:
+          this.registerUserCallback({
+            event: "wpsProcessDescriptionAvailable",
+            callback: runDescribeProcessTests
+          });
+          // and then one of:
+          this.describeProcessForProcessIdList([offeringId]);
+          this.describeProcessForOffering({identifier: offeringId});
+          this.describeProcessForOffering(off);
+          */
+
+          // Construct the specific request for this process
+          var params = {
+            dataInputs: [
+              {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
+              {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
+              {identifier: "year", data: {literalData: {value: "2013"}}}
+              // {identifier: "includeHeader", data: {literalData: {value: 1}}}
+            ]
+          };
+          off.registerUserCallback({
+            event: "wpsExecResultAvailable",
+            callback: runExecuteProcessTests
+          });
+          off.executeProcess(params);
+
+          /* Or alternatively, using WPS object rather than WPS.Offering:
+          this.registerUserCallback({
+            event: "wpsExecResultAvailable",
+            callback: runExecuteProcessTests
+          });
+          // and then one of:
+          this.executeProcessForProcessId(offeringId, params);
+          this.executeProcessForOffering({identifier: offeringId}, params);
+          this.executeProcessForOffering(off, params);
+          */
+        }
+      }
+
+      /**
+       * Callback to run tests on the WPS describe process response
+       */
+      function runDescribeProcessTests(e) {
+        console.log("***** post describeProcess tests *****");
+
+        console.log(this.WPSProcessDescription);
+
+        var tbody = "";
+
+        var rec = this.getProcessDescriptionRecord();
+
+        /* Or alternatively, using WPS object rather than WPS.Offering:
+        var rec = this.getProcessDescriptionRecord(0);
+        var rec = this.getProcessDescriptionRecordForId(offeringId);
+        */
+
+        if(rec) {
+          tbody += '<tr>';
+          tbody += '<td>' + rec.identifier + '</td>';
+          tbody += '<td>' + rec.title + '</td>';
+          tbody += '<td>' + rec.abstract + '</td>';
+          tbody += '<td>' + rec.processVersion + '</td>';
+          tbody += '</tr>';
+        }
+
+        var html = '<table><tbody>';
+        html += '<tr>';
+        html += '<th><b>ID</b></th>';
+        html += '<th><b>Title</b></th>';
+        html += '<th><b>Abstract</b></th>';
+        html += '<th><b>Version</b></th>';
+        html += '</tr>';
+        html += tbody;
+        html += '</tbody></table>';
+
+        document.getElementById("output").innerHTML = html;
+      }
+
+      /**
+       * Callback to run tests on the WPS execute process response
+       */
+      function runExecuteProcessTests(e) {
+        console.log("***** post executeProcess tests *****");
+
+        console.log(this.WPSExecutionResult);
+
+        // N.B.: The title property is only available for a WPS.Offering object
+        var html = "<h3>" + (this.title ? this.title : "") + "</h3>"
+        + "<pre>" + this.WPSExecutionResult.text + "</pre>";
+        document.getElementById("output").innerHTML += html;
+      }
+    </script>
+  </head>
+  <body onload="init()">
+    <h1 id="title">WPS Core Test</h1>
+    <p>Open the console log (Ctrl+Shift+k in Firefox) to see outputs from this test harness</p>
+    <p>This tests the core WPS objects from the WPS.js module, via a number of user-defined callbacks.  It does a parameterised call of the <em>metMonthlyMeans</em> WPS algorithm, which computes the monthly means of the <em>air_temperature</em> observed property from the <em>HalleyMet</em> offering, for 2013, served from the British Antarctic Survey (BAS) SOS instance.  It dumps lots of output to the console log.  It is these core WPS objects that underpin the user interface components, such as WPS.Menu etc.</p>
+    <div id="output"></div>
+  </body>
+</html>
+

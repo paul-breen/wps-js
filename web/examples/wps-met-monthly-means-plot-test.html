@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WPS/SOS Plot Test</title>
+
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/jquery/theme/default/jquery-ui.min.css" type="text/css"/>
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/SOS/SOS.Styles.css" type="text/css"/>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery-ui.min.js"></script>
+    <!--[if lte IE 8]><script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/flot/excanvas.min.js"></script><![endif]-->
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/flot/jquery.flot.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/flot/jquery.flot.selection.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/flot/jquery.flot.axislabels.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/flot/jquery.flot.navigate.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/SOS/SOS.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/SOS/SOS.Ui.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.js"></script>
+
+    <script type="text/javascript">
+      /**
+       * Initializes the page
+       */
+      function init() {
+        var options = {
+          url: 'http://sosmet.nerc-bas.ac.uk:8080/wpsmet/WebProcessingService'
+        };
+        var wps = new WPS(options);
+
+        // Construct the specific request for this process
+        var params = {
+          identifier: "org.n52.wps.server.r.metMonthlyMeans",
+          dataInputs: [
+            {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
+            {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
+            {identifier: "year", data: {literalData: {value: 2013}}},
+            {identifier: "includeHeader", data: {literalData: {value: 1}}}
+          ]
+        };
+        wps.registerUserCallback({
+          event: "wpsExecResultAvailable",
+          callback: handleExecuteProcessOutput
+        });
+        wps.executeProcessForOffering({}, params);
+      }
+
+      /**
+       * Callback to handle the WPS execute process response
+       */
+      function handleExecuteProcessOutput(e) {
+        var dataTable = constructDataTable(this.WPSExecutionResult.text);
+        var plotOptions = {show: true, series: {lines: {show: false, fill: false}, points: {show: true}, bars: {show: false}}};
+
+        /* We instantiate "empty" SOS.Plot/SOS.Table objects, free of the
+           underlying SOS machinery.  This allows us to then custom-parse the
+           results returned from the WPS into the form of a SOS.Ui series
+           object, which can then simply be placed into the SOS.Plot/SOS.Table
+           objects */
+
+        var plot = new SOS.Plot();
+
+        plot.setOverviewOptions({show: true});
+        plot.setPlotOptions(plotOptions);
+        plot.setOverviewOptions(plotOptions);
+        plot.config.format.time.formatter = timeFormatter;
+
+        plot.config.plot.series = [dataTable];
+        plot.draw();
+
+        var table = new SOS.Table();
+
+        table.setOverviewOptions({show: true});
+        table.setOverviewOptions(plotOptions);
+        table.config.format.time.formatter = timeFormatter;
+
+        table.config.table.series = [dataTable];
+        table.draw();
+      }
+
+      /**
+       * Override the default SOS timeFormatter function to only show year
+       * and abbreviated month name, instead of full ISO 8601 datetime
+       */
+      function timeFormatter(t) {
+        var D = new Date(t);
+        var shortMonthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return(D.getUTCFullYear() + ' ' + shortMonthNames[D.getUTCMonth()]);
+      }
+
+      /**
+       * Get data from given WPS query result object & return as a SOS.Ui
+       * data table
+       */
+      var constructDataTable = function(res) {
+        var table = {label: "", headerLabel: "", name: "", uom: "", uomTitle: "", data: []};
+        var rows = res.split(/\n/);
+
+        for(var i = 0, rlen = rows.length; i < rlen; i++) {
+          if(rows[i]) {
+            var cols = rows[i].split(/\s+/);
+
+            if(cols[0] == "#") {            // Parse metadata from header
+              var kvp = rows[i].match(/^#\s+(.+)\s+=\s+(.+)/);
+              kvp[2] = kvp[2].replace(/^\s+|\s+$/g, "");
+
+              switch(kvp[1]) {
+                case "offeringName":
+                  if(table.label.length < 1) {
+                    table.label = kvp[2];
+                  }
+                break;
+                case "observedPropertyName":
+                  if(table.name.length < 1) {
+                    table.name = SOS.Utils.toTitleCase(SOS.Utils.toDisplayName(kvp[2]));
+                  }
+                break;
+                case "observedPropertyUom":
+                  if(table.uom.length < 1) {
+                    table.uom = kvp[2];
+                    table.uomTitle = SOS.Utils.toDisplayUom(kvp[2]);
+                  }
+                break;
+              }
+            } else {                        // Parse data from table
+              // Set the date of the month
+              var D = new Date(Date.UTC(parseInt(cols[1], 10),
+                               parseInt(cols[2]-1, 10),
+                               1, 0, 0, 0, 0));
+              table.data.push([D.getTime(), parseFloat(cols[3])]);
+            }
+          }
+        }
+
+        /* Construct label as Offering + Observed Property,
+           & headerLabel as Offering + Observed Property + UOM */
+        if(table.label.length > 0) table.label += " ";
+        table.label += table.name + " Monthly Means";
+        table.headerLabel = table.label + (table.uomTitle.length > 0 ? " / " + table.uomTitle : "");
+
+        return table;
+      }
+    </script>
+  </head>
+  <body onload="init()">
+    <h3 id="title">WPS/SOS Plot Test</h3>
+    <p>This tests the core WPS objects from the WPS.js module, and their integration with the SOS.Plot/SOS.Table components from the SOS.Ui.js module.  The script does a parameterised call of the <em>metMonthlyMeans</em> WPS algorithm, which computes the monthly means of the <em>air_temperature</em> observed property from the <em>HalleyMet</em> offering, for 2013, served from the British Antarctic Survey (BAS) SOS instance.  The results are then parsed into SOS.Ui-compliant data tables, and pushed into the series objects of the SOS.Plot/SOS.Table.</p>
+    <!-- Plot/table areas -->
+    <div>
+      <div id="sosPlot" class="sos-plot" style="width: 600px; height: 340px;"></div>
+      <div id="sosPlotOverview" class="sos-plot-overview" style="width: 540px; height: 50px;"></div>
+    </div>
+    <div style="position: absolute; left: 650px; top: 60px;">
+      <div id="sosTable" class="sos-table" style="width: 600px; height: 340px;"></div>
+      <div id="sosTableOverview" class="sos-plot-overview" style="width: 540px; height: 50px;"></div>
+    </div>
+  </body>
+</html>
+

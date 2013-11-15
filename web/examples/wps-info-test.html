@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WPS Info Test</title>
+
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/jquery/theme/default/jquery-ui.min.css" type="text/css"/>
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Styles.css" type="text/css"/>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Ui.js"></script>
+
+    <script type="text/javascript">
+      /**
+       * Initializes the page
+       */
+      function init() {
+        var options = {
+          url: "http://sosmet.nerc-bas.ac.uk:8080/wpsmet/WebProcessingService"
+        };
+        var wps = new WPS(options);
+
+        var infoMetadata = new WPS.Info(options);
+        var infoHelp = new WPS.Info(options);
+        var infoContact = new WPS.Info(options);
+        var infoAbstract = new WPS.Info(options);
+        var infoKeywords = new WPS.Info(options);
+
+        infoMetadata.wps = wps;
+        infoHelp.wps = wps;
+        infoContact.wps = wps;
+        infoAbstract.wps = wps;
+        infoKeywords.wps = wps;
+
+        infoMetadata.config.info.id = "wpsInfoMetadataBox";
+        infoHelp.config.info.id = "wpsInfoHelpBox";
+        infoContact.config.info.id = "wpsInfoContactBox";
+        infoAbstract.config.info.id = "wpsInfoAbstractBox";
+        infoKeywords.config.info.id = "wpsInfoKeywordsBox";
+
+        var infoMetadataInitialContent = "Welcome to WPS Info Test";
+        var infoHelpInitialContent = "Select an Algorithm to apply to the selected parameters.";
+        var infoContactInitialContent = "";
+        var infoAbstractInitialContent = "";
+        var infoKeywordsInitialContent = "";
+
+        infoMetadata.addClass("wps-info-metadata-box");
+        infoHelp.addClass("wps-info-help-box");
+        infoContact.addClass("wps-info-contact-box");
+        infoContact.addClass("local-info-contact-box");
+        infoAbstract.addClass("local-info-abstract-box");
+        infoKeywords.addClass("local-info-keywords-box");
+
+        infoMetadata.addEventHandler({
+          event: "wpsCapsAvailable",
+          callback: function() {
+            var c = this.wps.WPSCapabilities.serviceIdentification.title + "<br/>";
+            this.updateContent(c);
+          }
+        });
+        infoContact.addEventHandler({
+          event: "wpsCapsAvailable",
+          callback: function() {
+            var c = jQuery("<div></div>", {
+              html: 'Service: <a href="' + this.wps.url + '">' + this.wps.WPSCapabilities.serviceIdentification.title + '</a>' + '<br/>'
+              + 'Provider: <a href="' + this.wps.WPSCapabilities.serviceProvider.providerSite + '">' + this.wps.WPSCapabilities.serviceProvider.providerName + '</a>' + '<br/>'
+              + 'Contact: <a href="mailto:' + this.wps.WPSCapabilities.serviceProvider.serviceContact.contactInfo.address.electronicMailAddress + '">' + this.wps.WPSCapabilities.serviceProvider.serviceContact.individualName + '</a>' + '<br/>'
+            });
+            this.updateContent(c);
+          }
+        });
+        infoAbstract.addEventHandler({
+          event: "wpsCapsAvailable",
+          callback: function() {
+            this.updateContent(WPS.Utils.newlineToBr(this.wps.WPSCapabilities.serviceIdentification.abstract));
+          }
+        });
+        infoKeywords.addEventHandler({
+          event: "wpsCapsAvailable",
+          callback: function() {
+            var a = [];
+            for(var k in this.wps.WPSCapabilities.serviceIdentification.keywords) {
+              a.push(k);
+            }
+            var c = jQuery("<ul></ul>");
+            jQuery.each(a, function(i) {
+              var li = jQuery("<li/>").appendTo(c);
+              var tag = jQuery("<span/>", {
+                text: a[i]
+              }).appendTo(li);
+            });
+            this.updateContent(c);
+          }
+        });
+
+        infoMetadata.setContent(infoMetadataInitialContent);
+        infoHelp.setContent(infoHelpInitialContent);
+        infoContact.setContent(infoContactInitialContent);
+        infoAbstract.setContent(infoAbstractInitialContent);
+        infoKeywords.setContent(infoKeywordsInitialContent);
+
+        infoMetadata.setTitle("Metadata");
+        infoHelp.setTitle("Help");
+        infoContact.setTitle("Contact");
+        infoAbstract.setTitle("Abstract");
+        infoKeywords.setTitle("Keywords");
+
+        infoMetadata.display();
+        infoHelp.display();
+        infoContact.display();
+        infoAbstract.display();
+        infoKeywords.display();
+
+        var infoVanilla = new WPS.Info(options);
+        infoVanilla.addClass("wps-info-vanilla-box");
+        infoVanilla.setTitle("WPS.Info Box");
+        infoVanilla.setContent("This is a somewhat vanilla WPS.Info box");
+        infoVanilla.display();
+
+        wps.getCapabilities();
+
+        var offeringId = "org.n52.wps.server.r.metMonthlyMeans";
+        var b3 = jQuery("<div/>", {
+          text: "Describe Process"
+        }).button();
+        b3.bind("click", {self: this}, function(evt) {
+          var self = evt.data.self;
+          wps.registerUserCallback({
+            event: "wpsProcessDescriptionAvailable",
+            callback: function() {
+              var rec = this.getProcessDescriptionRecordForId(offeringId);
+              var c = "";
+
+              if(rec) {
+                c += 'Title: ' + rec.title + '<br/>'
+                + 'Abstract: ' + rec.abstract + '<br/>'
+                + 'Version: ' + rec.processVersion + '<br/>';
+              }
+              infoMetadata.updateContent(c);
+            }
+          });
+          wps.describeProcessForOffering({identifier: offeringId});
+        });
+        jQuery("body").append(b3);
+      }
+    </script>
+
+    <style>
+      .wps-info-vanilla-box {
+        padding: 5px; 
+        padding-top: 20px;
+        /* font-size: 0.65em; */
+        width: 400px;
+      }
+
+      /* Local override of .wps-info-contact-box class */
+      .local-info-contact-box {
+        position: absolute;
+        left: 10px;
+      }
+
+      /* Abstract box is only local; there is no pre-defined style - yet */
+      .local-info-abstract-box {
+        position: absolute;
+        left: 10px;
+        top: 400px;
+        width: 400px;
+        padding: 5px;
+        padding-top: 20px;
+        font-size: 0.65em;
+      }
+
+      /* Keywords box is only local; there is no pre-defined style - yet */
+      .local-info-keywords-box {
+        position: absolute;
+        left: 510px;
+        top: 310px;
+        width: 400px;
+        padding: 5px;
+        padding-top: 20px;
+        /* font-size: 0.65em; */
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <h3 id="title">WPS Info Test</h3>
+    <p>This tests the WPS.Info component from the WPS.Ui.js module.  These controls allow for informational panels to be distributed around the application, which hook into the WPS (via defined event handlers) to show context-sensitive metadata.  They can also be used for displaying static content, such as the context-sensitive help panels etc.  Clicking on the buttons will simulate typical interaction during a WPS.App session, illustrating how the WPS.Info panels' content can be dynamically updated at runtime, according to the state of the application.</p>
+    <div id="wpsInfoRightContainer" class="wps-info-right-container">
+      <div id="wpsInfoMetadataBox" class="wps-info-box wps-info-metadata-box"></div>
+      <div id="wpsInfoHelpBox" class="wps-info-box wps-info-help-box"></div>
+    </div>
+
+  </body>
+</html>
+
