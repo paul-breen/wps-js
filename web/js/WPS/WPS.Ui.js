@@ -1187,5 +1187,350 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
       }
     });
   }
+
+  /* Create the WPS.Dialog namespace */
+  if(typeof WPS.Dialog === "undefined") {
+    /**
+     * WPS.Dialog Class
+     * Class for user-editing of algorithm parameters in a WPS application
+     *
+     * Inherits from:
+     *  - <WPS.Ui>
+     */
+    WPS.Dialog = OpenLayers.Class(WPS.Ui, {
+      url: null,
+      wps: null,
+      offering: null,
+      offeringId: null,
+      config: null,
+      CLASS_NAME: "WPS.Dialog",
+
+      /**
+       * Constructor for a WPS.Dialog object
+       *
+       * @constructor
+       */
+      initialize: function(options) {
+        this.url = null;
+        this.wps = null;
+        this.offering = null;
+        this.offeringId = null;
+        this.config = {
+          dialog: {
+            object: null,
+            id: "wpsDialog",
+            parameterList: [],
+            eventHandlers: [],
+            options: {
+              show: true,
+              prompt: {
+                active: true,
+                label: null
+              },
+              buttons: {
+                active: true,
+                ok: {
+                  label: "OK"
+                },
+                cancel: {
+                  label: "Cancel"
+                }
+              },
+              title: null,
+              position: ['center', 'center'],
+              width: 400,
+              zIndex: 1010,
+              stack: false
+            }
+          }
+        };
+        jQuery.extend(true, this, options);
+      },
+
+      /**
+       * Destructor for a WPS.Dialog object
+       * 
+       * @destructor
+       */
+      destroy: function() {
+      },
+
+      /**
+       * Set options for the dialog object
+       */
+      setDialogOptions: function(options) {
+        jQuery.extend(true, this.config.dialog.options, options);
+      },
+
+      /**
+       * Set initial/default values for the algorithm's parameter list
+       */
+      setParameterList: function(params) {
+        this.config.dialog.parameterList = params;
+      },
+
+      /**
+       * Get the values of the algorithm's parameter list
+       */
+      getParameterList: function() {
+        return this.config.dialog.parameterList;
+      },
+
+      /**
+       * Get the value of the given parameter property
+       */
+      getParameterProperty: function(name, property) {
+        var value;
+        var p = this.getParameterList();
+
+        for(var i = 0, len = p.length; i < len; i++) {
+          if(p[i].name == name) {
+            value = p[i][property];
+            break;
+          }
+        }
+
+        return value;
+      },
+
+      /**
+       * Format the form input parameter list suitable for passing directly
+       * to a WPS executeProcess() call
+       */
+      formatParameterListForExecuteProcess: function() {
+        var res = {dataInputs: []};
+        var p = this.getParameterList();
+
+        for(var i = 0, len = p.length; i < len; i++) {
+          var record = {
+            identifier: p[i].name,
+            data: {
+              literalData: {
+                value: p[i].value
+              }
+            }
+          };
+          res.dataInputs.push(record);
+        }
+
+        return res;
+      },
+
+      /**
+       * Add an event handler object to the dialog's event handler array.
+       * The event handler object has the form:
+       * {event: e, scope: object, callback: function}
+       * The callback function will be called in the given scope
+       */
+      addEventHandler: function(h) {
+        this.config.dialog.eventHandlers.push(h);
+      },
+
+      /**
+       * Generate the dialog
+       */
+      display: function(options) {
+        // Parameters can optionally be tweaked for each call
+        if(arguments.length > 0) {
+          jQuery.extend(true, this.config.dialog.options, options);
+        }
+        if(!this.haveValidCapabilitiesObject()) {
+          this.getCapabilities(this._display);
+        } else {
+          this._display();
+        }
+      },
+
+      /**
+       * Get data from the WPS according to this object's properties, & then
+       * draw the dialog
+       */
+      _display: function() {
+        this._getOffering();
+
+        if(this.haveValidOfferingObject()) {
+          if(!this.offering.haveValidProcessDescriptionRecord()) {
+            this.getProcessDescriptionRecord();
+          } else {
+            this.describeProcessHandler();
+          }
+        }
+      },
+
+      /**
+       * Get the process description record for the given algorithm
+       */
+      getProcessDescriptionRecord: function() {
+        this.offering.registerUserCallback({
+          event: "wpsProcessDescriptionAvailable",
+          scope: this,
+          callback: this.describeProcessHandler
+        });
+        this.offering.describeProcess();
+      },
+
+      /**
+       * Event handler for process description record
+       */
+      describeProcessHandler: function() {
+        if(this.config.dialog.options.show) {
+          this.setupBehaviour();
+          this.openDialog();
+        }
+      },
+
+      /**
+       * Open a dialog box to configure parameters for this algorithm.  Upon
+       * clicking the OK button, the user-edited parameters are available
+       * via a call to getParameterList()
+       */
+      openDialog: function() {
+        var panel = jQuery('<form/>');
+        var rec = this.offering.getProcessDescriptionRecord();
+        var buttons = [];
+
+        panel = this.constructDialogInputForm(panel, rec);
+        buttons = this.constructDialogButtons(panel, rec, buttons);
+        this.constructDialog(panel, rec, buttons);
+      },
+ 
+      /**
+       * Construct the dialog's input form
+       */
+      constructDialogInputForm: function(panel, rec) {
+        panel = this.constructDialogInputFormPrompt(panel, rec);
+
+        // Construct the controls for configuring the algorithm
+        for(var i = 0, len = rec.dataInputs.length; i < len; i++) {
+          var input = rec.dataInputs[i];
+          panel = this.constructDialogInputControl(panel, rec, input);
+        }
+        jQuery("body").after(panel);
+
+        return panel;
+      },
+  
+      /**
+       * Construct the prompt for the dialog
+       */
+      constructDialogInputFormPrompt: function(panel, rec) {
+        // Normally, the algorithm's abstract is used as the prompt
+        if(this.config.dialog.options.prompt.active) {
+          var promptRow = jQuery('<div></div>', {
+            "class": "wps-dialog-prompt-row"
+          });
+          var promptLabel = jQuery('<div></div>', {
+            text: this.config.dialog.options.prompt.label || rec.abstract
+          });
+          promptRow.append(promptLabel);
+          panel.append(promptRow);
+        }
+
+        return panel;
+      },
+ 
+      /**
+       * Construct a given input control for the dialog
+       */
+      constructDialogInputControl: function(panel, rec, input) {
+        var type = this.getParameterProperty(input.identifier, "type");
+        var inputRow = jQuery('<div></div>', {
+          "class": "wps-dialog-control-row"
+        });
+
+        // Only show parameters that are not set as hidden
+        if(type != "hidden") {
+          var inputLabel = jQuery('<div></div>', {
+            "class": "wps-dialog-control-label",
+            text: this.getParameterProperty(input.identifier, "label") || input.title || input.identifier
+          });
+          inputRow.append(inputLabel);
+        }
+        var inputControl = jQuery('<input></input>', {
+          "class": "wps-dialog-control",
+          type: type || "text",
+          id: input.identifier,
+          name: input.identifier,
+          value: this.getParameterProperty(input.identifier, "value")
+        });
+        inputRow.append(inputControl);
+        panel.append(inputRow);
+
+        return panel;
+      },
+ 
+      /**
+       * Construct the dialog's buttons
+       */
+      constructDialogButtons: function(panel, rec, buttons) {
+        var self = this;
+
+        if(this.config.dialog.options.buttons.active) {
+          buttons = [
+            {
+              text: this.config.dialog.options.buttons.ok.label,
+              click: function() {
+                // Store the user-entered parameters & close the dialog
+                self.setParameterList(panel.serializeArray());
+                jQuery(this).dialog().dialog("close");
+
+                // For external listeners (application-level plumbing)
+                self.wps.events.triggerEvent("wpsDialogOkClick");
+              }
+            },
+            {
+              text: this.config.dialog.options.buttons.cancel.label,
+              click: function() {
+                jQuery(this).dialog().dialog("close");
+
+                // For external listeners (application-level plumbing)
+                self.wps.events.triggerEvent("wpsDialogCancelClick");
+              }
+            }
+          ];
+        }
+
+        return buttons;
+      },
+ 
+      /**
+       * Construct the dialog object
+       */
+      constructDialog: function(panel, rec, buttons) {
+        var opts = this.config.dialog.options;
+        var dialog = panel.dialog({
+          position: opts.position || ['center', 'center'],
+          buttons: buttons,
+          title: opts.title || rec.title,
+          width: opts.width || 400,
+          zIndex: opts.zIndex || 1010,
+          stack: opts.stack || false
+        });
+        dialog.bind('dialogclose', function() {
+          jQuery(this).remove();
+          jQuery(this).dialog().dialog("destroy");
+        });
+
+        return dialog;
+      },
+
+      /**
+       * Register all configured event handlers, to manage the dialog's
+       * runtime behaviour
+       */
+      setupBehaviour: function() {
+        if(WPS.Utils.isValidObject(this.wps)) {
+          for(var i = 0, len = this.config.dialog.eventHandlers.length; i < len; i++) {
+            var h = this.config.dialog.eventHandlers[i];
+
+            if(WPS.Utils.isValidObject(h) && WPS.Utils.isValidObject(h.event) && WPS.Utils.isValidObject(h.callback)) {
+              h.scope = h.scope || this;
+              this.wps.registerUserCallback(h);
+            }
+          }
+        }
+      }
+    });
+  }
 }
 

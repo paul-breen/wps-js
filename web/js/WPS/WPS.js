@@ -485,6 +485,16 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
       getProcessDescriptionRecord: function() {
         // Inherited from WPS parent class
         return this.getProcessDescriptionRecordForId(this.getId());
+      },
+
+      /**
+       * Validate the process description for this offering from the internal
+       * process descriptions object
+       */
+      haveValidProcessDescriptionRecord: function() {
+        var rec = this.getProcessDescriptionRecord();
+
+        return WPS.Utils.isValidObject(rec.identifier);
       }
     });
 

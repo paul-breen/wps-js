@@ -72,7 +72,7 @@
   border-radius: 6px;
   background-color: #f2f5f7;
   border: thin solid #aed0ea;
-  z-index: 1200;
+  z-index: 1005;
   filter: alpha(opacity=80);
   opacity: 0.8;
 }
@@ -169,6 +169,33 @@
   font-style: italic;
   color: #808080;
   font-size: 0.9em;
+}
+
+.wps-dialog-select-list {
+  float: right;
+  margin-top: -20px;
+  margin-right: 5px;
+}
+
+.wps-dialog-prompt-row {
+  font-size: 0.9em;
+  margin-bottom: 10px;
+}
+
+.wps-dialog-control-row {
+  font-size: 0.9em;
+  clear: both;
+}
+
+.wps-dialog-control-label {
+  float: left;
+  width: 48%;
+}
+
+.wps-dialog-control {
+  float: left;
+  margin-left: 1%;
+  width: 48%;
 }
 
 .ui-autocomplete {

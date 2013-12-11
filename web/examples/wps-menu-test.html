@@ -71,36 +71,47 @@
       }
 
       /**
-       * Run the selected algorithm with hard-coded test data
+       * Run the selected algorithm with user-editable test data
        */
       function executeProcess(wps, proc) {
-        var params;
+        var parameterList;
+        var dialog = new WPS.Dialog({url: wps.url});
+
+        dialog.offeringId = proc.identifier;
 
         if((WPS.Utils.idToName(proc.identifier) == "metMonthlyStats") || (WPS.Utils.idToName(proc.identifier) == "metMonthlyMeans")) {
-          params = {
-            dataInputs: [
-              {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
-              {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
-              {identifier: "year", data: {literalData: {value: 2013}}},
-              {identifier: "includeHeader", data: {literalData: {value: 1}}}
-            ]
-          };
+          parameterList = [
+            {name: "url", type: "hidden", value: "http://sosmet.nerc-bas.ac.uk:8080/sosmet/sos"},
+            {name: "includeHeader", type: "hidden", value: 1},
+            {name: "offeringId", label: "Dataset", value: "HalleyMet"},
+            {name: "observedPropertyId", label: "Variable", value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"},
+            {name: "year", label: "Year", value: "2013"}
+          ];
         } else if(WPS.Utils.idToName(proc.identifier) == "metData") {
-          params = {
-            dataInputs: [
-              {identifier: "offeringId", data: {literalData: {value: "HalleyMet"}}},
-              {identifier: "observedPropertyId", data: {literalData: {value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"}}},
-              {identifier: "startDatetime", data: {literalData: {value: "2013-01-01T00:00:00Z"}}},
-              {identifier: "endDatetime", data: {literalData: {value: "2013-01-01T23:59:59Z"}}},
-              {identifier: "includeHeader", data: {literalData: {value: 1}}}
-            ]
-          };
+          parameterList = [
+            {name: "url", type: "hidden", value: "http://sosmet.nerc-bas.ac.uk:8080/sosmet/sos"},
+            {name: "includeHeader", type: "hidden", value: 1},
+            {name: "offeringId", label: "Dataset", value: "HalleyMet"},
+            {name: "observedPropertyId", label: "Variable", value: "urn:ogc:def:phenomenon:OGC:1.0.30:air_temperature"},
+            {name: "startDatetime", label: "Start Date", value: "2013-01-01T00:00:00Z"},
+            {name: "endDatetime", label: "End Date", value: "2013-01-01T23:59:59Z"}
+          ];
         } else {
           alert("Sorry, no specific parameters have been setup for this particular algorithm yet.  Please try another algorithm from the list.");
         }
-        if(params) {
-          wps.executeProcessForProcessId(proc.identifier, params);
-        }
+
+        dialog.setParameterList(parameterList);
+        dialog.addEventHandler({
+          event: "wpsDialogOkClick",
+          callback: function() {
+            var params = dialog.formatParameterListForExecuteProcess();
+
+            if(params) {
+              wps.executeProcessForProcessId(proc.identifier, params);
+            }
+          }
+        });
+        dialog.display();
       }
     </script>
     <style>
@@ -135,7 +146,7 @@
   </head>
   <body onload="init()">
     <h3 id="title">WPS Menu Test</h3>
-    <p>This tests the WPS.Menu component (and the WPS.Info component) from the WPS.Ui.js module.  Selecting an algorithm (aka offering) from the Algorithms list will describe that algorithm in the Metadata WPS.Info box, on the right hand side of the page.  Furthermore, the selected algorithm will be executed, with hard-coded parameters, and the raw output displayed in the Data WPS.Info box, in the centre of the page.</p>
+    <p>This tests the WPS.Menu component (and the WPS.Info and WPS.Dialog components) from the WPS.Ui.js module.  Selecting an algorithm (aka offering) from the Algorithms list will describe that algorithm in the Metadata WPS.Info box, on the right hand side of the page.  Furthermore, the selected algorithm will be executed, with user-editable parameters presented in a WPS.Dialog, and the raw output displayed in the Data WPS.Info box, in the centre of the page.</p>
     <!-- <div id="wpsMenu" class="wps-menu"></div> -->
     <div id="wpsInfoDataBox" class="wps-info-box local-info-data-box"></div>
     <div id="wpsInfoRightContainer" class="wps-info-right-container">

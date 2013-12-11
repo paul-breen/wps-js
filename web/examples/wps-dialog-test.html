@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>WPS Dialog Test</title>
+
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/jquery/theme/default/jquery-ui.min.css" type="text/css"/>
+    <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Styles.css" type="text/css"/>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.js"></script>
+    <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Ui.js"></script>
+
+    <script type="text/javascript">
+      /**
+       * Initializes the page
+       */
+      function init() {
+        var options = {
+          url: "http://sosmet.nerc-bas.ac.uk:8080/wpsmet/WebProcessingService",
+          offeringId: "org.n52.wps.server.r.metMonthlyMeans"
+        };
+        var dialog = new WPS.Dialog(options);
+        var infoData = new WPS.Info(options);
+
+        /* We use an info box to show the user-entered inputs of the dialog */
+        infoData.wps = dialog.wps;
+        infoData.config.info.id = "wpsInfoDataBox";
+        infoData.addClass("local-info-data-box");
+        infoData.setContent("Welcome to WPS Dialog Test");
+        infoData.setTitle("Dialog Parameters");
+        infoData.display();
+
+        dialog.setParameterList([
+          {name: "url", type: "hidden", value: "http://sosmet.nerc-bas.ac.uk:8080/sosmet/sos"},
+          {name: "includeHeader", type: "hidden", value: 1},
+          {name: "offeringId", label: "Dataset", value: "HalleyMet"},
+          {name: "observedPropertyId", label: "Variable", value: "air_temperature"},
+          {name: "year", label: "Year", value: 2013}
+        ]);
+        dialog.addEventHandler({
+          event: "wpsDialogOkClick",
+          callback: function() {
+            var p = dialog.getParameterList();
+            var c = "<pre>";
+            for(var i = 0, len = p.length; i < len; i++) {
+              c += p[i].name + " = " + p[i].value + "\n";
+            }
+            c += "</pre>";
+            infoData.updateContent(c);
+          }
+        });
+        dialog.display();
+      }
+    </script>
+    <style>
+      .local-info-data-box {
+        position: absolute;
+        top: 146px;
+        left: 10px;
+        padding: 5px; 
+        padding-top: 20px;
+        width: 360px;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <h3 id="title">WPS Dialog Test</h3>
+    <p>This tests the WPS.Dialog component (and the WPS.Info component) from the WPS.Ui.js module.  The dialog allows a user to edit the parameters for a particular algorithm, with the parameter input controls being built from the results of a describe process call for that algorithm.  Here, the initial algorithm is hard-coded, but would normally be picked from, say, a WPS.Menu control.  On clicking on the "OK" button, the user-edited parameters, as well as any hidden parameters, are shown in the WPS.Info box.</p>
+  </body>
+</html>
+
