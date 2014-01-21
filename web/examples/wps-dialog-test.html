@@ -8,6 +8,7 @@
 
     <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/jquery/theme/default/jquery-ui.min.css" type="text/css"/>
     <link rel="stylesheet" href="http://basmet.nerc-bas.ac.uk/js/sos/WPS/WPS.Styles.css" type="text/css"/>
+    <script type="text/javascript" src="/wps/js/WPS/WPS.Ui.js"></script>
     <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/OpenLayers/OpenLayers.js"></script>
     <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery.min.js"></script>
     <script type="text/javascript" src="http://basmet.nerc-bas.ac.uk/js/sos/jquery/jquery-ui.min.js"></script>
@@ -34,12 +35,34 @@
         infoData.setTitle("Dialog Parameters");
         infoData.display();
 
+        /* The dialog control for input of a parameter's value property, is
+           dependent on the parameter's type property, where type is one of:
+           text = textbox, select = select listbox, multiselect = select
+           listbox with the 'multiple' attribute set, checkbox = checkbox, &
+           radio = radiobutton.  If type is not set, the default is text.
+
+           For array controls (select, multiselect, & radio), the parameter's
+           'entries' array must be set.  Each element of this array is of the
+           form: {value: "", label: ""}, where value is what's returned from a
+           call to getParameterList(), & label is what's shown to the user in
+           the dialog.  These entries can be constructed statically, or
+           dynamically at runtime via a call to:
+           setParameterProperty("paramId", "entries", entries); */
+
+        var years = [];
+        var startYear = 2000, endYear = (new Date).getUTCFullYear();
+        var defaultYear = endYear;
+
+        for(var i = startYear; i <= endYear; i++) {
+          years.push({value: i, label: i});
+        }
+
         dialog.setParameterList([
           {name: "url", type: "hidden", value: "http://sosmet.nerc-bas.ac.uk:8080/sosmet/sos"},
           {name: "includeHeader", type: "hidden", value: 1},
           {name: "offeringId", label: "Dataset", value: "HalleyMet"},
           {name: "observedPropertyId", label: "Variable", value: "air_temperature"},
-          {name: "year", label: "Year", value: 2013}
+          {name: "year", label: "Year", type: "select", value: defaultYear, entries: years}
         ]);
         dialog.addEventHandler({
           event: "wpsDialogOkClick",
