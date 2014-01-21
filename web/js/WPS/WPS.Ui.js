@@ -1277,6 +1277,20 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
       },
 
       /**
+       * Set the value of the given parameter property
+       */
+      setParameterProperty: function(name, property, value) {
+        var p = this.getParameterList();
+
+        for(var i = 0, len = p.length; i < len; i++) {
+          if(p[i].name == name) {
+            p[i][property] = value;
+            break;
+          }
+        }
+      },
+
+      /**
        * Get the value of the given parameter property
        */
       getParameterProperty: function(name, property) {
@@ -1446,19 +1460,123 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
           });
           inputRow.append(inputLabel);
         }
-        var inputControl = jQuery('<input></input>', {
-          "class": "wps-dialog-control",
-          type: type || "text",
-          id: input.identifier,
-          name: input.identifier,
-          value: this.getParameterProperty(input.identifier, "value")
-        });
+        var inputControl;
+
+        // Input control is built according to the parameter's type property
+        switch(type) {
+          case "select":
+          case "multiselect":
+            inputControl = this.constructDialogListInputControl(input);
+          break;
+          case "radio":
+            inputControl = this.constructDialogRadioButtonInputControl(input);
+          break;
+          case "checkbox":
+            inputControl = this.constructDialogCheckBoxInputControl(input);
+          break;
+          default:
+            inputControl = this.constructDialogTextInputControl(input);
+          break;
+        }
         inputRow.append(inputControl);
         panel.append(inputRow);
 
         return panel;
       },
  
+      /**
+       * Construct a given text input control for the dialog
+       */
+      constructDialogTextInputControl: function(input) {
+        var inputControl = jQuery('<input></input>', {
+          "class": "wps-dialog-control",
+          type: this.getParameterProperty(input.identifier, "type") || "text",
+          id: input.identifier,
+          name: input.identifier,
+          value: this.getParameterProperty(input.identifier, "value")
+        });
+
+        return inputControl;
+      },
+ 
+      /**
+       * Construct a given checkbox input control for the dialog
+       */
+      constructDialogCheckBoxInputControl: function(input) {
+        var defaultValue = this.getParameterProperty(input.identifier, "value");
+        var inputControl = jQuery('<input></input>', {
+          "class": "wps-dialog-control",
+          type: "checkbox",
+          id: input.identifier,
+          name: input.identifier,
+          value: defaultValue
+        });
+        if(defaultValue) {
+          inputControl.attr("checked", "checked");
+        }
+
+        return inputControl;
+      },
+ 
+      /**
+       * Construct a given list (select) input control for the dialog
+       */
+      constructDialogListInputControl: function(input) {
+        var entries = this.getParameterProperty(input.identifier, "entries") || [{value: '', label: ''}];
+        var defaultValue = this.getParameterProperty(input.identifier, "value") || entries[0].value;
+        var inputControl = jQuery('<select></select>', {
+          "class": "wps-dialog-select-list",
+          id: input.identifier,
+          name: input.identifier
+        });
+        if(this.getParameterProperty(input.identifier, "type") == "multiselect") {
+          inputControl.attr("multiple", "multiple");
+        }
+
+        for(var i = 0, len = entries.length; i < len; i++) {
+          var e = jQuery('<option></option>', {
+            value: entries[i].value,
+            text: entries[i].label
+          });
+          if(entries[i].value == defaultValue || entries[i].label == defaultValue) {
+            e.attr("selected", "selected");
+          }
+          inputControl.append(e);
+        }
+
+        return inputControl;
+      },
+
+      /**
+       * Construct a given radio button input control for the dialog
+       */
+      constructDialogRadioButtonInputControl: function(input) {
+        var entries = this.getParameterProperty(input.identifier, "entries") || [{value: '', label: ''}];
+        var defaultValue = this.getParameterProperty(input.identifier, "value") || entries[0].value;
+        var inputControl = jQuery('<div></div>', {
+          "class": "wps-dialog-control",
+          id: input.identifier + "Container",
+        });
+
+        for(var i = 0, len = entries.length; i < len; i++) {
+          var e = jQuery('<input></input>', {
+            type: "radio",
+            id: input.identifier + i,
+            name: input.identifier,
+            value: entries[i].value
+          });
+          if(entries[i].value == defaultValue || entries[i].label == defaultValue) {
+            e.attr("checked", "checked");
+          }
+          var l = jQuery('<span></span>', {
+            text: entries[i].label
+          });
+          inputControl.append(e, l);
+        }
+
+        return inputControl;
+      },
+
       /**
        * Construct the dialog's buttons
        */

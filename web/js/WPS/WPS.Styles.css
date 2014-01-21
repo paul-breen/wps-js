@@ -173,8 +173,9 @@
 
 .wps-dialog-select-list {
   float: right;
-  margin-top: -20px;
-  margin-right: 5px;
+  margin-top: 0px;
+  margin-right: 2px;
+  max-width: 48%;
 }
 
 .wps-dialog-prompt-row {
