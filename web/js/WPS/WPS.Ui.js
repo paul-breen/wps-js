@@ -1236,6 +1236,14 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
                   label: "Cancel"
                 }
               },
+              datePickers: {
+                // N.B.: This is a 4-digit year
+                dateFormat: "yy-mm-dd",
+                autoSize: true,
+                changeYear: true,
+                changeMonth: true,
+                onSelect: function(s, ui) {jQuery(this).trigger('change');}
+              },
               title: null,
               position: ['center', 'center'],
               width: 400,
@@ -1474,6 +1482,9 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
           case "checkbox":
             inputControl = this.constructDialogCheckBoxInputControl(input);
           break;
+          case "datepicker":
+            inputControl = this.constructDialogDatePickerInputControl(input);
+          break;
           default:
             inputControl = this.constructDialogTextInputControl(input);
           break;
@@ -1578,6 +1589,22 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
       },
 
       /**
+       * Construct a given datepicker input control for the dialog
+       */
+      constructDialogDatePickerInputControl: function(input) {
+        var inputControl = jQuery('<input></input>', {
+          "class": "wps-dialog-control",
+          type: "text",
+          id: input.identifier,
+          name: input.identifier,
+          value: this.getParameterProperty(input.identifier, "value")
+        });
+        inputControl.datepicker(this.config.dialog.options.datePickers);
+
+        return inputControl;
+      },
+
+      /**
        * Construct the dialog's buttons
        */
       constructDialogButtons: function(panel, rec, buttons) {
@@ -1625,8 +1652,8 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
           stack: opts.stack || false
         });
         dialog.bind('dialogclose', function() {
-          jQuery(this).remove();
           jQuery(this).dialog().dialog("destroy");
+          jQuery(this).remove();
         });
 
         return dialog;

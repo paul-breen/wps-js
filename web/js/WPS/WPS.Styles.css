@@ -199,6 +199,11 @@
   width: 48%;
 }
 
+/* jquery ui styles */
+div.ui-datepicker {
+  font-size: 62.5%;
+}
+
 .ui-autocomplete {
   font-size: 75%;
 }
