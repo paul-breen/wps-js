@@ -1316,6 +1316,68 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
       },
 
       /**
+       * Set the values of the given parameter array property
+       */
+      setParameterArrayProperty: function(name, property, values) {
+        var p = this.getParameterList();
+
+        for(var i = 0, len = p.length; i < len; i++) {
+          if(p[i].name == name && values.length > 0) {
+            p[i][property] = values.shift();
+          }
+        }
+      },
+
+      /**
+       * Get the values of the given parameter array property
+       */
+      getParameterArrayProperty: function(name, property) {
+        var values = [];
+        var p = this.getParameterList();
+
+        for(var i = 0, len = p.length; i < len; i++) {
+          if(p[i].name == name) {
+            values.push(p[i][property]);
+          }
+        }
+
+        return values;
+      },
+
+      /**
+       * Flatten the values of the given parameter array property.  Remove
+       * multiple instances of the parameter in the parameter list, and
+       * replace with a single instance containing the flattened property
+       */
+      flattenParameterArrayProperty: function(name, property, options) {
+        var options = options || {separator: ","};
+        var a = this.getParameterArrayProperty(name, property);
+        var first;
+
+        if(WPS.Utils.isArray(a)) {
+          var oldParameters = this.getParameterList();
+          var newParameters = [];
+
+          for(var i = 0, len = oldParameters.length; i < len; i++) {
+            if(oldParameters[i].name != name) {
+              newParameters.push(oldParameters[i]);
+            } else {
+              if(!first) {
+                first = oldParameters[i];
+              }
+            }
+          }
+          if(first) {
+            first[property] = a.join(options.separator);
+            newParameters.push(first);
+          }
+          this.setParameterList(newParameters);
+        }
+
+        return first;
+      },
+
+      /**
        * Format the form input parameter list suitable for passing directly
        * to a WPS executeProcess() call
        */
