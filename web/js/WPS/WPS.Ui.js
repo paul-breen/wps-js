@@ -145,7 +145,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
        */
       haveValidOfferingObject: function() {
         return WPS.Utils.isValidObject(this.offering);
-      },
+      }
     });
   }
 
@@ -184,7 +184,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
                   active: true,
                   label: "Algorithms",
                   prompt: ""
-                },
+                }
               },
               listBoxes: {
                 multiple: false,
@@ -942,14 +942,14 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
        * Set CSS class for the info panel
        */
       setClass: function(c) {
-        this.config.info.class = c;
+        this.config.info["class"] = c;
       },
 
       /**
        * Add a CSS class to the info panel
        */
       addClass: function(c) {
-        this.config.info.class += " " + c;
+        this.config.info["class"] += " " + c;
       },
 
       /**
@@ -986,7 +986,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(p.length < 1) {
           p = jQuery("<div></div>", {
             id: this.config.info.id,
-            "class": this.config.info.class
+            "class": this.config.info["class"]
           });
           jQuery('body').append(p);
         }
@@ -1020,7 +1020,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
        */
       displayContent: function() {
         if(WPS.Utils.isValidObject(this.config.info.object)) {
-          var s = this.config.info.object.children("." + this.config.info.options.contentSection.class);
+          var s = this.config.info.object.children("." + this.config.info.options.contentSection["class"]);
           s.html(this.config.info.content);
         }
       },
@@ -1053,7 +1053,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(WPS.Utils.isValidObject(this.config.info.object)) {
           if(this.config.info.options.show && this.config.info.options.contentSection.active) {
             var c = jQuery("<div></div>", {
-              "class": this.config.info.options.contentSection.class
+              "class": this.config.info.options.contentSection["class"]
             });
 
             // Add the content section to this info panel
@@ -1070,7 +1070,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(WPS.Utils.isValidObject(this.config.info.object)) {
           if(this.config.info.options.show && this.config.info.options.controlsSection.active) {
             var c = jQuery("<div></div>", {
-              "class": this.config.info.options.controlsSection.class
+              "class": this.config.info.options.controlsSection["class"]
             });
 
             // Add the controls section to this info panel
@@ -1086,12 +1086,12 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(WPS.Utils.isValidObject(this.config.info.object)) {
           if(this.config.info.options.show && this.config.info.options.controlsSectionTitle.active) {
             var c = jQuery("<div></div>", {
-              "class": this.config.info.options.controlsSectionTitle.class,
+              "class": this.config.info.options.controlsSectionTitle["class"],
               html: this.config.info.options.controlsSectionTitle.label
             });
 
             // Add the control to this info panel's control section
-            var s = this.config.info.object.children("." + this.config.info.options.controlsSection.class);
+            var s = this.config.info.object.children("." + this.config.info.options.controlsSection["class"]);
             s.append(c);
           }
         }
@@ -1105,13 +1105,13 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(WPS.Utils.isValidObject(this.config.info.object)) {
           if(this.config.info.options.show && this.config.info.options.showHideControl.active) {
             var c = jQuery("<div></div>", {
-              "class": this.config.info.options.showHideControl.class
+              "class": this.config.info.options.showHideControl["class"]
             });
             c.addClass(this.config.info.options.showHideControl.icons.show);
             c.bind("click", {self: this}, this.showHideControlClickHandler);
 
             // Add the control to this info panel's control section
-            var s = this.config.info.object.children("." + this.config.info.options.controlsSection.class);
+            var s = this.config.info.object.children("." + this.config.info.options.controlsSection["class"]);
             s.append(c);
           }
         }
@@ -1145,13 +1145,13 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         if(WPS.Utils.isValidObject(this.config.info.object)) {
           if(this.config.info.options.show && this.config.info.options.closeControl.active) {
             var c = jQuery("<div></div>", {
-              "class": this.config.info.options.closeControl.class
+              "class": this.config.info.options.closeControl["class"]
             });
             c.addClass(this.config.info.options.closeControl.icons.close);
             c.bind("click", {self: this}, this.closeControlClickHandler);
 
             // Add the control to this info panel's control section
-            var s = this.config.info.object.children("." + this.config.info.options.controlsSection.class);
+            var s = this.config.info.object.children("." + this.config.info.options.controlsSection["class"]);
             s.append(c);
           }
         }
@@ -1628,7 +1628,7 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null &&
         var defaultValue = this.getParameterProperty(input.identifier, "value") || entries[0].value;
         var inputControl = jQuery('<div></div>', {
           "class": "wps-dialog-control",
-          id: input.identifier + "Container",
+          id: input.identifier + "Container"
         });
 
         for(var i = 0, len = entries.length; i < len; i++) {
