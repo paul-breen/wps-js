@@ -27,8 +27,10 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
       "WPSDescribeProcessErrorMessage": "WPS Describe Process failed: "
     });
 
-    /* This library uses a proxy host.  Change the path accordingly */
-    OpenLayers.ProxyHost = "/cgi-bin/proxy.cgi?url=";
+    /* This library uses a proxy host, by default.  See the WPS.Proxy object
+       (below) to configure/enable/disable this proxy at runtime */
+    var WPS_DEFAULT_PROXY_HOST = "/cgi-bin/proxy.cgi?url=";
+    OpenLayers.ProxyHost = WPS_DEFAULT_PROXY_HOST;
 
     /**
      * WPS Class
@@ -497,6 +499,56 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
         return WPS.Utils.isValidObject(rec.identifier);
       }
     });
+
+    /**
+     * WPS.Proxy namespace.  Proxy functions for WPS connections
+     */
+    WPS.Proxy = {
+      use: true,
+      url: WPS_DEFAULT_PROXY_HOST,
+ 
+      /**
+       * Initialise the proxy for communicating to the WPS
+       */
+      init: function(options) {
+        // We can optionally modify the proxy settings here
+        if(WPS.Utils.isValidObject(options)) {
+          for(var p in options) {
+            this[p] = options[p];
+          }
+        }
+        /* Initialise the proxy, based on the "use" flag */
+        if(this.use) {
+          this.enable();
+        } else {
+          this.disable();
+        }
+      },
+ 
+      /**
+       * Enable the proxy for communicating to the WPS
+       */
+      enable: function(options) {
+        // We can optionally modify the proxy settings here
+        if(WPS.Utils.isValidObject(options)) {
+          for(var p in options) {
+            this[p] = options[p];
+          }
+        }
+        if(this.url) {
+          OpenLayers.ProxyHost = this.url;
+        }
+
+        return this.url;
+      },
+ 
+      /**
+       * Disable the proxy for communicating to the WPS
+       */
+      disable: function() {
+        OpenLayers.ProxyHost = null;
+      }
+    };
 
     /**
      * WPS.Utils namespace.  Utility functions for WPS classes
