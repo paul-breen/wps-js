@@ -61,9 +61,20 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
           execution: {
             responseFormatType: "text/plain",
             outputId: "output"
+          },
+          post: {
+            setUrlFromCapabilities: true,
+            constraint: "Content-Type",
+            responseFormatType: "(application|text)/xml",
+            url: null
           }
         };
         OpenLayers.Util.extend(this, options);
+
+        /* By default, the POST URL is the same as the GET URL */
+        if(this.url) {
+          this.config.post.url = this.url;
+        }
       },
 
       /**
@@ -143,6 +154,9 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
        */
       _parseCapabilities: function(response) {
         this.WPSCapabilities = this.capsFormatter.read(response.responseXML || response.responseText);
+        if(this.config.post.setUrlFromCapabilities) {
+          this.setPostUrl();
+        }
         this.events.triggerEvent("wpsCapsAvailable", {response: response});
       },
 
@@ -151,6 +165,67 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
        */
       haveValidCapabilitiesObject: function() {
         return WPS.Utils.isValidObject(this.WPSCapabilities);
+      },
+
+      /**
+       * Set the config.post.url member to an available URL, capable of
+       * handling responses of the configured type, parsed from the
+       * capabilities object
+       */
+      setPostUrl: function() {
+        /* A WPS can use a different URL for GET & POST requests, so we find
+           the POST URL from the capabilities object & store it */
+        if(this.haveValidCapabilitiesObject()) {
+          if(WPS.Utils.isValidObject(this.WPSCapabilities.operationsMetadata)) {
+            var op = this.WPSCapabilities.operationsMetadata.Execute || this.WPSCapabilities.operationsMetadata.GetCapabilities;
+
+            if(WPS.Utils.isValidObject(op)) {
+              if(WPS.Utils.isValidObject(op.dcp.http.post)) {
+                this._setPostUrlFromDcpSection(op.dcp.http.post);
+              }
+            }
+          }
+        }
+      },
+
+      /**
+       * Set the config.post.url member to the first URL that matches any
+       * configured constraints, parsed from the DCP section of the 
+       * capabilities object
+       */
+      _setPostUrlFromDcpSection: function(post) {
+        for(var i = 0, len = post.length; i < len; i++) {
+          if(WPS.Utils.isValidObject(post[i].constraints)) {
+            if(this._setPostUrlFromTypeSuggestion(post[i], this.config.post.responseFormatType)) {
+              break;
+            }
+          } else {
+            this.config.post.url = post[i].url;
+            break;
+          }
+        }
+      },
+
+      /**
+       * If the given POST array entry is capable of handling responses of the
+       * given type (regexp), then set the config.post.url member to this
+       * entry's corresponding URL
+       */
+      _setPostUrlFromTypeSuggestion: function(entry, type) {
+        var v = entry.constraints[this.config.post.constraint].allowedValues;
+        var matched = false;
+
+        if(WPS.Utils.isValidObject(v)) {
+          for(var format in v) {
+            if(format && format.match(type)) {
+              this.config.post.url = entry.url;
+              matched = true;
+              break;
+            }
+          }
+        }
+
+        return matched;
       },
 
       /**
@@ -246,11 +321,11 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
         }
         var xml = this.execFormatter.write(params);
         OpenLayers.Request.POST({
-          url: this.url,
+          url: this.config.post.url,
           scope: this,
           async: this.config.async,
           failure: function() {
-            alert(OpenLayers.i18n("WPSExecuteErrorMessage") + this.url);
+            alert(OpenLayers.i18n("WPSExecuteErrorMessage") + this.config.post.url);
           },
           success: this._parseExecutionResult,
           data: xml
@@ -292,11 +367,11 @@ if(typeof OpenLayers !== "undefined" && OpenLayers !== null) {
         };
         var xml = this.processDescFormatter.write(params);
         OpenLayers.Request.POST({
-          url: this.url,
+          url: this.config.post.url,
           scope: this,
           async: this.config.async,
           failure: function() {
-            alert(OpenLayers.i18n("WPSDescribeProcessErrorMessage") + this.url);
+            alert(OpenLayers.i18n("WPSDescribeProcessErrorMessage") + this.config.post.url);
           },
           success: this._parseProcessDescription,
           data: xml
